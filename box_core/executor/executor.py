@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Any, Optional, Union
 
-from hypex.dataset import Dataset, ExperimentData
-from hypex.utils import ID_SPLIT_SYMBOL, AbstractMethodError
+from box_core.dataset import DataSet, PipelineData
+from box_core.utils import ID_SPLIT_SYMBOL, AbstractMethodError
 
 
 class Executor(ABC):
@@ -70,17 +70,17 @@ class Executor(ABC):
         return False
 
     def _set_value(
-        self, data: ExperimentData, value: Any, key: Any = None
-    ) -> ExperimentData:
+        self, data: PipelineData, value: Any, key: Any = None
+    ) -> PipelineData:
         return data
 
     @abstractmethod
-    def execute(self, data: ExperimentData) -> ExperimentData:
+    def execute(self, data: PipelineData) -> PipelineData:
         raise AbstractMethodError
 
 
 class Calculator(Executor, ABC):
     @staticmethod
     @abstractmethod
-    def calc(data: Dataset, **kwargs):
+    def calc(data: DataSet, **kwargs):
         raise AbstractMethodError

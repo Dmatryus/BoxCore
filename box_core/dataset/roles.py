@@ -1,7 +1,7 @@
 from abc import ABC
 from typing import Optional, Dict
 
-from hypex.utils import (
+from box_core.utils import (
     TargetRoleTypes,
     DefaultRoleTypes,
     CategoricalTypes,
@@ -97,18 +97,6 @@ class GroupingRole(ABCRole):
         super().__init__(data_type)
 
 
-class TreatmentRole(ABCRole):
-    """Role for column that shows treatment.
-    Designates the treatment assignment of subjects in an experimental study. This role is critical
-    for identifying which group a subject belongs to, facilitating the assessment of the treatment
-    effects across different conditions.
-    Attributes:
-        _role_name (RoleNameType): A name identifying the role as 'Treatment'.
-    """
-
-    _role_name: RoleNameType = "Treatment"
-
-
 class TargetRole(ABCRole):
     """Role for column that shows target.
     Represents the primary outcome variable of interest in an analysis or study. Target roles
@@ -165,20 +153,7 @@ class ResumeRole(ABCRole):
 
 
 class FilterRole(ABCRole):
-
     _role_name: RoleNameType = "Filter"
-
-
-class TempTreatmentRole(TreatmentRole):
-    """Role for temp treatment column.
-    A temporary role used for transient treatment assignments in executables or during
-    experimental processing phases. This role can help manage dynamic treatment group
-    assignments that are not final but necessary for intermediate calculations.
-    Attributes:
-        _role_name (RoleNameType): A name identifying the role as 'TempTreatment'.
-    """
-
-    _role_name: RoleNameType = "TempTreatment"
 
 
 class TempTargetRole(TargetRole):
@@ -205,34 +180,9 @@ class TempGroupingRole(GroupingRole):
     _role_name: RoleNameType = "TempGrouping"
 
 
-class Arg1Role(ABCRole):
-    """Role for arg1 column.
-    Represents the first argument in binary operations between columns. This role is
-    critical in scenarios where the order of operands affects the outcome of the operation,
-    such as in subtraction or division.
-    Attributes:
-        _role_name (RoleNameType): A name identifying the role as 'Arg1'.
-    """
-
-    _role_name: RoleNameType = "Arg1"
-
-
-class Arg2Role(ABCRole):
-    """Role for arg2 column.
-    Represents the second argument in binary operations between columns. Essential for
-    maintaining the correct order of operands in operations where sequence influences
-    the result, like in division or subtraction.
-    Attributes:
-        _role_name (RoleNameType): A name identifying the role as 'Arg2'.
-    """
-
-    _role_name: RoleNameType = "Arg2"
-
-
 default_roles: Dict[RoleNameType, ABCRole] = {
     "info": InfoRole(),
     "feature": FeatureRole(),
-    "treatment": TreatmentRole(),
     "grouping": GroupingRole(),
     "target": TargetRole(),
     "pretarget": PreTargetRole(),

@@ -1,9 +1,9 @@
 from copy import deepcopy
 from typing import Iterable, Dict, Union, Any, List, Optional
 
-from hypex.dataset import (
-    ExperimentData,
-    Dataset,
+from box_core.dataset import (
+    PipelineData,
+    DataSet,
     TempGroupingRole,
     TempTargetRole,
     ABCRole,
@@ -11,13 +11,13 @@ from hypex.dataset import (
     TreatmentRole,
     TempTreatmentRole,
 )
-from hypex.executor import Executor
-from hypex.utils import ID_SPLIT_SYMBOL, ExperimentDataEnum
+from box_core.executor import Executor
+from box_core.utils import ID_SPLIT_SYMBOL, PipelineDataEnum
 
 from tqdm.auto import tqdm
 
 
-class Experiment(Executor):
+class Pipeline(Executor):
     def _detect_transformer(self) -> bool:
         return all(executor._is_transformer for executor in self.executors)
 
@@ -52,10 +52,10 @@ class Experiment(Executor):
         self.transformer: bool = (
             transformer if transformer is not None else self._detect_transformer()
         )
-        full_name = str(full_name or f"Experiment({len(self.executors)})")
+        full_name = str(full_name or f"Pipeline({len(self.executors)})")
         super().__init__(full_name, key)
 
-    def execute(self, data: ExperimentData) -> ExperimentData:
+    def execute(self, data: PipelineData) -> PipelineData:
         experiment_data = deepcopy(data) if self.transformer else data
         for executor in self.executors:
             executor.key = self.key
@@ -81,7 +81,7 @@ class CycledExperiment(Executor):
     def generate_params_hash(self) -> str:
         return f"{self.inner_executor.full_name} x {self.n_iterations}"
 
-    def execute(self, data: ExperimentData) -> ExperimentData:
+    def execute(self, data: PipelineData) -> PipelineData:
         for i in tqdm(range(self.n_iterations)):
             self.analyzer.key = f"{i}"
             self.inner_executor.key = f"{i}"
@@ -107,26 +107,26 @@ class GroupExperiment(Executor):
         self.inner_executor: Executor = inner_executor
         super().__init__(full_name, key)
 
-    def _extract_result(self, data: ExperimentData) -> Dataset:
+    def _extract_result(self, data: PipelineData) -> DataSet:
         return data.analysis_tables[self.inner_executor._id]
 
     def _insert_result(
-        self, data: ExperimentData, result_list: List[Dataset]
-    ) -> ExperimentData:
+        self, data: PipelineData, result_list: List[DataSet]
+    ) -> PipelineData:
         result = result_list[0]
         for i in range(1, len(result_list)):
             result = result.append(result_list[i])
         data.set_value(
-            ExperimentDataEnum.analysis_tables, self._id, str(self.full_name), result
+            PipelineDataEnum.analysis_tables, self._id, str(self.full_name), result
         )
         return data
 
-    def execute(self, data: ExperimentData) -> ExperimentData:
+    def execute(self, data: PipelineData) -> PipelineData:
         result_list = []
         group_field = data.ds.get_columns_by_roles(TempGroupingRole(), tmp_role=True)
 
         for group, group_data in data.ds.groupby(group_field):
-            temp_data = ExperimentData(group_data)
+            temp_data = PipelineData(group_data)
             temp_data = self.inner_executor.execute(temp_data)
             temp_data = temp_data.ds.add_column(
                 [group] * len(temp_data.ds),
@@ -136,7 +136,7 @@ class GroupExperiment(Executor):
         return self._insert_result(data, result_list)
 
 
-class OnRoleExperiment(Experiment):
+class OnRolePipeline(Pipeline):
     def __init__(
         self,
         executors: List[Executor],
@@ -148,7 +148,7 @@ class OnRoleExperiment(Experiment):
         self.role: ABCRole = role
         super().__init__(executors, transformer, full_name, key)
 
-    def execute(self, data: ExperimentData) -> ExperimentData:
+    def execute(self, data: PipelineData) -> PipelineData:
         for field in data.ds.get_columns_by_roles(self.role):
             data.ds.tmp_roles = {field: TempTargetRole()}
             data = super().execute(data)
