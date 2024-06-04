@@ -521,7 +521,8 @@ class PipelineData:
     def __init__(self, data: DataSet):
         self._data = data
         self.additional_fields = DataSet.create_empty(index=data.index)
-        self.stats = DataSet.create_empty(index=data.columns)
+        self.variables: Dict[str, Dict[str, Union[int, float]]] = {}
+        self.groups: Dict[FieldKeyTypes, DataSet] = {}
         self.analysis_tables: Dict[str, DataSet] = {}
         self.id_name_mapping: Dict[str, str] = {}
 
@@ -539,10 +540,12 @@ class PipelineData:
     def check_hash(self, executor_id: int, space: PipelineDataEnum) -> bool:
         if space == PipelineDataEnum.additional_fields:
             return executor_id in self.additional_fields.columns
-        elif space == PipelineDataEnum.stats:
-            return executor_id in self.stats.columns
+        elif space == PipelineDataEnum.variables:
+            return executor_id in self.variables.keys()
         elif space == PipelineDataEnum.analysis_tables:
             return executor_id in self.analysis_tables
+        elif space == PipelineDataEnum.groups:
+            return executor_id in self.groups.keys()
         else:
             return any(self.check_hash(executor_id, s) for s in PipelineDataEnum)
 
@@ -559,25 +562,46 @@ class PipelineData:
             self.additional_fields.add_column(data=value, role={executor_id: role})
         elif space == PipelineDataEnum.analysis_tables:
             self.analysis_tables[executor_id] = value
-        elif space == PipelineDataEnum.stats:
-            if executor_id not in self.stats.columns:
-                self.stats.add_column(
-                    data=[None] * len(self.stats),
-                    role={executor_id: StatisticRole()},
-                )
-            self.stats[executor_id][key] = value
+        elif space == PipelineDataEnum.variables:
+            self.variables[executor_id][key] = value
+        elif space == PipelineDataEnum.groups:
+            self.groups[executor_id][key] = value
         self.id_name_mapping[executor_id] = name
         return self
 
     def get_ids(
-        self, classes: Union[type, List[type]]
+            self,
+            classes: Union[type, Iterable[type]],
+            searched_space: Optional[PipelineDataEnum] = None,
     ) -> Dict[type, Dict[str, List[str]]]:
         classes = classes if isinstance(classes, Iterable) else [classes]
+        if searched_space:
+            spaces = {
+                PipelineDataEnum.additional_fields: self.additional_fields,
+                PipelineDataEnum.analysis_tables: self.analysis_tables,
+                PipelineDataEnum.groups: self.groups,
+                PipelineDataEnum.variables: self.variables,
+            }
+            return {
+                class_: {
+                    searched_space.value: [
+                        str(_id)
+                        for _id in spaces[searched_space]
+                        if _id.split(ID_SPLIT_SYMBOL)[0] == class_.__name__
+                    ]
+                }
+                for class_ in classes
+            }
         return {
             class_: {
-                PipelineDataEnum.stats.value: [
+                PipelineDataEnum.groups.value: [
                     str(_id)
-                    for _id in self.stats.columns
+                    for _id in self.groups.keys()
+                    if _id.split(ID_SPLIT_SYMBOL)[0] == class_.__name__
+                ],
+                PipelineDataEnum.variables.value: [
+                    str(_id)
+                    for _id in self.variables.keys()
                     if _id.split(ID_SPLIT_SYMBOL)[0] == class_.__name__
                 ],
                 PipelineDataEnum.additional_fields.value: [
