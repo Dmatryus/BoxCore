@@ -1,7 +1,7 @@
 from copy import deepcopy
 from typing import Iterable, Dict, Union, Any, List, Optional
 
-from box_core.dataset import (
+from boxcore.dataset import (
     PipelineData,
     Dataset,
     TempGroupingRole,
@@ -11,8 +11,8 @@ from box_core.dataset import (
     TreatmentRole,
     TempTreatmentRole,
 )
-from box_core.executor import Executor
-from box_core.utils import ID_SPLIT_SYMBOL, PipelineDataEnum
+from boxcore.executor import Executor
+from boxcore.utils import ID_SPLIT_SYMBOL, PipelineDataEnum
 
 from tqdm.auto import tqdm
 

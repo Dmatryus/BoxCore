@@ -14,7 +14,7 @@ from typing import (
 
 import pandas as pd  # type: ignore
 
-from box_core.utils import (
+from boxcore.utils import (
     ID_SPLIT_SYMBOL,
     BackendsEnum,
     ConcatBackendError,

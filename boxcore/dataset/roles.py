@@ -1,7 +1,7 @@
 from abc import ABC
 from typing import Optional, Dict
 
-from box_core.utils import (
+from boxcore.utils import (
     TargetRoleTypes,
     DefaultRoleTypes,
     CategoricalTypes,
