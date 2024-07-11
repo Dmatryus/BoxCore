@@ -3,7 +3,7 @@ This module defines data structures and roles used across the library for managi
 """
 
 from .abstract import DatasetBase
-from .dataset import DataSet, PipelineData
+from .dataset import Dataset, PipelineData
 from .roles import (
     Arg1Role,
     Arg2Role,
@@ -23,7 +23,7 @@ from .roles import (
 )
 
 __all__ = [
-    "DataSet",
+    "Dataset",
     "PipelineData",
     "Arg1Role",
     "Arg2Role",

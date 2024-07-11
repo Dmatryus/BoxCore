@@ -3,7 +3,7 @@ from typing import Iterable, Dict, Union, Any, List, Optional
 
 from box_core.dataset import (
     PipelineData,
-    DataSet,
+    Dataset,
     TempGroupingRole,
     TempTargetRole,
     ABCRole,
@@ -64,7 +64,7 @@ class Pipeline(Executor):
         return experiment_data
 
 
-class CycledExperiment(Executor):
+class CycledPipeline(Executor):
     def __init__(
         self,
         inner_executor: Executor,
@@ -92,7 +92,7 @@ class CycledExperiment(Executor):
         return data
 
 
-class GroupExperiment(Executor):
+class GroupPipeline(Executor):
     def generate_params_hash(self) -> str:
         return (
             f"GroupExperiment: {self.inner_executor._id.replace(ID_SPLIT_SYMBOL, '|')}"
@@ -107,11 +107,11 @@ class GroupExperiment(Executor):
         self.inner_executor: Executor = inner_executor
         super().__init__(full_name, key)
 
-    def _extract_result(self, data: PipelineData) -> DataSet:
+    def _extract_result(self, data: PipelineData) -> Dataset:
         return data.analysis_tables[self.inner_executor._id]
 
     def _insert_result(
-        self, data: PipelineData, result_list: List[DataSet]
+        self, data: PipelineData, result_list: List[Dataset]
     ) -> PipelineData:
         result = result_list[0]
         for i in range(1, len(result_list)):

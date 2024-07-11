@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Optional, Union
 
-from box_core.dataset import DataSet, PipelineData
+from box_core.dataset import Dataset, PipelineData
 from box_core.utils import ID_SPLIT_SYMBOL, AbstractMethodError
 
 
@@ -82,5 +82,5 @@ class Executor(ABC):
 class Calculator(Executor, ABC):
     @staticmethod
     @abstractmethod
-    def calc(data: DataSet, **kwargs):
+    def calc(data: Dataset, **kwargs):
         raise AbstractMethodError

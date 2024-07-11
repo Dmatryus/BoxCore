@@ -38,15 +38,15 @@ from .roles import (
 )
 
 
-class DataSet(DatasetBase):
+class Dataset(DatasetBase):
     class Locker:
         def __init__(self, backend, roles):
             self.backend = backend
             self.roles = roles
 
-        def __getitem__(self, item) -> "DataSet":
+        def __getitem__(self, item) -> "Dataset":
             t_data = self.backend.loc(item)
-            return DataSet(
+            return Dataset(
                 data=t_data,
                 roles={k: v for k, v in self.roles.items() if k in t_data.columns},
             )
@@ -56,9 +56,9 @@ class DataSet(DatasetBase):
             self.backend = backend
             self.roles = roles
 
-        def __getitem__(self, item) -> "DataSet":
+        def __getitem__(self, item) -> "Dataset":
             t_data = self.backend.iloc(item)
-            return DataSet(
+            return Dataset(
                 data=t_data,
                 roles={k: v for k, v in self.roles.items() if k in t_data.columns},
             )
@@ -76,7 +76,7 @@ class DataSet(DatasetBase):
         self.loc = self.Locker(self._backend, self.roles)
         self.iloc = self.ILocker(self._backend, self.roles)
 
-    def __getitem__(self, item: Union[Iterable, str, int]) -> "DataSet":
+    def __getitem__(self, item: Union[Iterable, str, int]) -> "Dataset":
         items = (
             [item] if isinstance(item, str) or not isinstance(item, Iterable) else item
         )
@@ -88,7 +88,7 @@ class DataSet(DatasetBase):
             )
             for column in items
         }
-        result = DataSet(data=self._backend.__getitem__(item), roles=roles)
+        result = Dataset(data=self._backend.__getitem__(item), roles=roles)
         result.tmp_roles = self.tmp_roles
         return result
 
@@ -99,17 +99,17 @@ class DataSet(DatasetBase):
         self.data[key] = value
 
     def __binary_magic_operator(self, other, func_name: str) -> Any:
-        if not isinstance(other, Union[DataSet, ScalarType, Sequence]):
+        if not isinstance(other, Union[Dataset, ScalarType, Sequence]):
             raise DataTypeError(type(other))
         func = getattr(self._backend, func_name)
         t_roles = self.roles
         for role in t_roles.values():
             role.data_type = None
-        if isinstance(other, DataSet):
+        if isinstance(other, Dataset):
             if type(other._backend) is not type(self._backend):
                 raise BackendTypeError(type(other._backend), type(self._backend))
             other = other._backend
-        return DataSet(roles=t_roles, data=func(other))
+        return Dataset(roles=t_roles, data=func(other))
 
     # comparison operators:
     def __eq__(self, other):
@@ -132,19 +132,19 @@ class DataSet(DatasetBase):
 
     # unary operators:
     def __pos__(self):
-        return DataSet(roles=self.roles, data=(+self._backend))
+        return Dataset(roles=self.roles, data=(+self._backend))
 
     def __neg__(self):
-        return DataSet(roles=self.roles, data=(-self._backend))
+        return Dataset(roles=self.roles, data=(-self._backend))
 
     def __abs__(self):
-        return DataSet(roles=self.roles, data=abs(self._backend))
+        return Dataset(roles=self.roles, data=abs(self._backend))
 
     def __invert__(self):
-        return DataSet(roles=self.roles, data=(~self._backend))
+        return Dataset(roles=self.roles, data=(~self._backend))
 
     def __round__(self, ndigits: int = 0):
-        return DataSet(roles=self.roles, data=round(self._backend, ndigits))
+        return Dataset(roles=self.roles, data=round(self._backend, ndigits))
 
     def __bool__(self):
         return not self._backend.is_empty()
@@ -226,20 +226,20 @@ class DataSet(DatasetBase):
         return self.backend.columns
 
     @staticmethod
-    def create_empty(backend=BackendsEnum.pandas, roles=None, index=None) -> "DataSet":
+    def create_empty(backend=BackendsEnum.pandas, roles=None, index=None) -> "Dataset":
         if roles is None:
             roles = {}
         index = [] if index is None else index
         columns = list(roles.keys())
-        ds = DataSet(roles=roles, backend=backend)
+        ds = Dataset(roles=roles, backend=backend)
         ds._backend = ds._backend.create_empty(index, columns)
         ds.data = ds.backend.data
         return ds
 
-    def _convert_data_after_agg(self, result) -> Union["DataSet", float]:
+    def _convert_data_after_agg(self, result) -> Union["Dataset", float]:
         if isinstance(result, float):
             return result
-        return DataSet(
+        return Dataset(
             data=result, roles={column: StatisticRole() for column in self.roles}
         )
 
@@ -250,7 +250,7 @@ class DataSet(DatasetBase):
         index: Optional[Iterable[Hashable]] = None,
     ):
         if role is None:
-            if not isinstance(data, DataSet):
+            if not isinstance(data, Dataset):
                 raise ValueError("Козьёль")
             self.roles.update(data.roles)
             self._backend.add_column(
@@ -263,13 +263,13 @@ class DataSet(DatasetBase):
             self._backend.add_column(data, list(role.keys())[0], index)
 
     def _check_other_dataset(self, other):
-        if not isinstance(other, DataSet):
+        if not isinstance(other, Dataset):
             raise ConcatDataError(type(other))
         if type(other._backend) is not type(self._backend):
             raise ConcatBackendError(type(other._backend), type(self._backend))
 
-    def append(self, other, index=None) -> "DataSet":
-        if isinstance(other, DataSet):
+    def append(self, other, index=None) -> "Dataset":
+        if isinstance(other, Dataset):
             other = [other]
 
         new_roles = copy(self.roles)
@@ -277,7 +277,7 @@ class DataSet(DatasetBase):
             self._check_other_dataset(o)
             new_roles.update(o.roles)
 
-        return DataSet(roles=new_roles, data=self.backend.append(other, index))
+        return Dataset(roles=new_roles, data=self.backend.append(other, index))
 
     @staticmethod
     def from_dict(
@@ -288,8 +288,8 @@ class DataSet(DatasetBase):
         ],
         backend: BackendsEnum = BackendsEnum.pandas,
         index=None,
-    ) -> "DataSet":
-        ds = DataSet(roles=roles, backend=backend)
+    ) -> "Dataset":
+        ds = Dataset(roles=roles, backend=backend)
         ds._backend = ds._backend.from_dict(data, index)
         ds.data = ds._backend.data
         return ds
@@ -301,16 +301,16 @@ class DataSet(DatasetBase):
         role: Dict[FieldKeyTypes, ABCRole],
         axis: int = 0,
         **kwargs,
-    ) -> "DataSet":
-        return DataSet(
+    ) -> "Dataset":
+        return Dataset(
             data=self._backend.apply(func=func, axis=axis, **kwargs).rename(
                 list(role.keys())[0]
             ),
             roles=role,
         )
 
-    def map(self, func, na_action=None, **kwargs) -> "DataSet":
-        return DataSet(
+    def map(self, func, na_action=None, **kwargs) -> "Dataset":
+        return Dataset(
             roles=self.roles,
             data=self._backend.map(func=func, na_action=na_action, **kwargs),
         )
@@ -324,8 +324,8 @@ class DataSet(DatasetBase):
     def nunique(self, dropna: bool = False):
         return self._backend.nunique(dropna)
 
-    def isin(self, values: Iterable) -> "DataSet":
-        return DataSet(
+    def isin(self, values: Iterable) -> "Dataset":
+        return Dataset(
             roles={column: FilterRole() for column in self.roles.keys()},
             data=self._backend.isin(values),
         )
@@ -338,7 +338,7 @@ class DataSet(DatasetBase):
         **kwargs,
     ):
         datasets = [
-            (i, DataSet(roles=self.roles, data=data))
+            (i, Dataset(roles=self.roles, data=data))
             for i, data in self._backend.groupby(by=by, **kwargs)
         ]
         if fields_list:
@@ -349,7 +349,7 @@ class DataSet(DatasetBase):
         if func:
             datasets = [(i, data.agg(func)) for i, data in datasets]
         for dataset in datasets:
-            if isinstance(dataset, DataSet):
+            if isinstance(dataset, Dataset):
                 dataset[1].tmp_roles = self.tmp_roles
         return datasets
 
@@ -373,11 +373,11 @@ class DataSet(DatasetBase):
         **kwargs,
     ):
         if by is None:
-            return DataSet(
+            return Dataset(
                 roles=self.roles,
                 data=self.backend.sort_index(ascending=ascending, **kwargs),
             )
-        return DataSet(
+        return Dataset(
             roles=self.roles,
             data=self.backend.sort_values(by=by, ascending=ascending, **kwargs),
         )
@@ -390,7 +390,7 @@ class DataSet(DatasetBase):
     ):
         if method and method not in ["backfill", "bfill", "ffill"]:
             raise NameError("Unsupported fill method")
-        return DataSet(
+        return Dataset(
             roles=self.roles, data=self.backend.fillna(values, method, **kwargs)
         )
 
@@ -421,7 +421,7 @@ class DataSet(DatasetBase):
     def corr(self, method="pearson", numeric_only=False):
         t_data = self._backend.corr(method=method, numeric_only=numeric_only)
         t_roles = {column: self.roles[column] for column in t_data.columns}
-        return DataSet(roles=t_roles, data=t_data)
+        return Dataset(roles=t_roles, data=t_data)
 
     def value_counts(
         self,
@@ -435,13 +435,13 @@ class DataSet(DatasetBase):
         )
         t_roles = self.roles
         t_roles["count"] = StatisticRole()
-        return DataSet(roles=t_roles, data=t_data)
+        return Dataset(roles=t_roles, data=t_data)
 
     def na_counts(self):
         return self._convert_data_after_agg(self._backend.na_counts())
 
     def dropna(self, how: str = "any", subset: Union[str, Iterable[str], None] = None):
-        return DataSet(
+        return Dataset(
             roles=self.roles, data=self._backend.dropna(how=how, subset=subset)
         )
 
@@ -454,7 +454,7 @@ class DataSet(DatasetBase):
     def select_dtypes(self, include: Any = None, exclude: Any = None):
         t_data = self._backend.select_dtypes(include=include, exclude=exclude)
         t_roles = {k: v for k, v in self.roles.items() if k in t_data.columns}
-        return DataSet(roles=t_roles, data=t_data)
+        return Dataset(roles=t_roles, data=t_data)
 
     def merge(
         self,
@@ -466,7 +466,7 @@ class DataSet(DatasetBase):
         right_index: bool = False,
         suffixes: tuple[str, str] = ("_x", "_y"),
     ):
-        if not isinstance(right, DataSet):
+        if not isinstance(right, Dataset):
             raise DataTypeError(type(right))
         if type(right._backend) is not type(self._backend):
             raise BackendTypeError(type(right._backend), type(self._backend))
@@ -489,41 +489,41 @@ class DataSet(DatasetBase):
                 t_roles[c] = right.roles[c[: -len(suffixes[1])]]
 
         new_roles = {c: t_roles[c] for c in t_data.columns}
-        return DataSet(roles=new_roles, data=t_data)
+        return Dataset(roles=new_roles, data=t_data)
 
     def drop(self, labels: Any = None, axis: int = 1):
         t_data = self._backend.drop(labels=labels, axis=axis)
         t_roles = (
             self.roles if axis == 0 else {c: self.roles[c] for c in t_data.columns}
         )
-        return DataSet(roles=t_roles, data=t_data)
+        return Dataset(roles=t_roles, data=t_data)
 
-    def dot(self, other: "DataSet") -> "DataSet":
+    def dot(self, other: "Dataset") -> "Dataset":
         result_data = self.backend.dot(other.backend)
-        return DataSet(roles=other.roles, data=result_data)
+        return Dataset(roles=other.roles, data=result_data)
 
     def transpose(
         self,
         roles: Optional[Union[Dict[Union[str, int], ABCRole], List]] = None,
-    ) -> "DataSet":
+    ) -> "Dataset":
         roles_names = roles.keys() or {} if isinstance(roles, Dict) else roles
         result_data = self.backend.transpose(roles_names)
         if roles is None or isinstance(roles, List):
             names = result_data.columns if roles is None else roles
             roles = {column: FeatureRole() for column in names}
-        return DataSet(roles=roles, data=result_data)
+        return Dataset(roles=roles, data=result_data)
 
-    def shuffle(self, random_state: Optional[int] = None) -> "DataSet":
-        return DataSet(self.roles, data=self.backend.shuffle(random_state))
+    def shuffle(self, random_state: Optional[int] = None) -> "Dataset":
+        return Dataset(self.roles, data=self.backend.shuffle(random_state))
 
 
 class PipelineData:
-    def __init__(self, data: DataSet):
+    def __init__(self, data: Dataset):
         self._data = data
-        self.additional_fields = DataSet.create_empty(index=data.index)
+        self.additional_fields = Dataset.create_empty(index=data.index)
         self.variables: Dict[str, Dict[str, Union[int, float]]] = {}
-        self.groups: Dict[FieldKeyTypes, DataSet] = {}
-        self.analysis_tables: Dict[str, DataSet] = {}
+        self.groups: Dict[FieldKeyTypes, Dataset] = {}
+        self.analysis_tables: Dict[str, Dataset] = {}
         self.id_name_mapping: Dict[str, str] = {}
 
     @property
@@ -534,7 +534,7 @@ class PipelineData:
     def create_empty(
         roles=None, backend=BackendsEnum.pandas, index=None
     ) -> "PipelineData":
-        ds = DataSet.create_empty(backend, roles, index)
+        ds = Dataset.create_empty(backend, roles, index)
         return PipelineData(ds)
 
     def check_hash(self, executor_id: int, space: PipelineDataEnum) -> bool:
@@ -624,7 +624,7 @@ class PipelineData:
             raise NotFoundInExperimentDataError(class_)
         return result[class_][space.value][0]
 
-    def copy(self, data: Optional[DataSet] = None) -> "PipelineData":
+    def copy(self, data: Optional[Dataset] = None) -> "PipelineData":
         result = deepcopy(self)
         if data is not None:
             result._data = data
